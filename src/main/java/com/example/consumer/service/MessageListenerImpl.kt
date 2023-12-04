@@ -12,7 +12,8 @@ class MessageListenerImpl(
 
     @KafkaListener(id = "group_id", topics = ["person"])
     override fun receive(message: String) {
-        personService.process(personMapper.map(message))
+        val person = personMapper.map(message)
+        personService.putObject("bucket-1", person.name.toString(), person, true)
     }
 
 }

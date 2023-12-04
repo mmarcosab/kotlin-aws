@@ -3,10 +3,13 @@ package com.example.consumer.service
 import com.amazonaws.services.s3.AmazonS3
 import com.amazonaws.services.s3.model.*
 import com.example.consumer.model.Person
-import org.apache.commons.io.FileUtils;
-
+import org.apache.commons.io.FileUtils
 import org.springframework.stereotype.Service
 import java.io.File
+import java.io.FileWriter
+import java.io.IOException
+import java.io.PrintWriter
+
 
 @Service
 class PersonServiceImpl(
@@ -16,7 +19,7 @@ class PersonServiceImpl(
 
     }
 
-    fun createS3Bucket(bucketName: String, publicBucket: Boolean) {
+    override fun createS3Bucket(bucketName: String, publicBucket: Boolean) {
         if(amazonS3Client.doesBucketExist(bucketName)) {
             return;
         }
@@ -27,33 +30,49 @@ class PersonServiceImpl(
         }
     }
 
-    fun listBuckets(): List<Bucket>{
+    override fun listBuckets(): List<Bucket>{
         return amazonS3Client.listBuckets();
     }
 
-    fun deleteBucket(bucketName: String){
+    override fun deleteBucket(bucketName: String){
         //TODO: catch exception here
         amazonS3Client.deleteBucket(bucketName);
     }
 
     //Object level operations
+    @Throws(IOException::class)
+    override fun putObject(bucketName: String?, objectName: String, objectValue: Person, publicObject: Boolean) {
+        val file = File("." + File.separator + objectName)
+        val fileWriter = FileWriter(file, false)
+        val printWriter = PrintWriter(fileWriter)
+        printWriter.println(objectValue)
+        printWriter.flush()
+        printWriter.close()
+        if (publicObject) {
+            val putObjectRequest = PutObjectRequest(bucketName, objectName, file).withCannedAcl(CannedAccessControlList.PublicRead)
+            amazonS3Client.putObject(putObjectRequest)
+        } else {
+            val putObjectRequest = PutObjectRequest(bucketName, objectName, file).withCannedAcl(CannedAccessControlList.Private)
+            amazonS3Client.putObject(putObjectRequest)
+        }
+    }
 
-    fun listObjects(bucketName: String): List<S3ObjectSummary> {
+    override fun listObjects(bucketName: String): List<S3ObjectSummary> {
         val objectListing = amazonS3Client.listObjects(bucketName);
         return objectListing.objectSummaries;
     }
 
-    fun downloadObject(bucketName: String, objectName:String) {
+    override fun downloadObject(bucketName: String, objectName:String) {
         //TODO: catch exceptions
         val s3object = amazonS3Client.getObject(bucketName, objectName);
         FileUtils.copyInputStreamToFile(s3object.objectContent, File("." + File.separator + objectName));
     }
 
-    fun deleteObject(bucketName: String, objectName:String) {
+    override fun deleteObject(bucketName: String, objectName:String) {
         amazonS3Client.deleteObject(bucketName, objectName);
     }
 
-    fun moveObject(bucketSourceName: String, objectName: String, bucketTargetName: String){
+    override fun moveObject(bucketSourceName: String, objectName: String, bucketTargetName: String){
         amazonS3Client.copyObject(
                 bucketSourceName,
                 objectName,
