@@ -1,0 +1,1 @@
+aws sqs send-message --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue --message-body "Person(id='63', name='test-2', age=90, surname='test-2')"
